@@ -4,7 +4,7 @@ A Minecraft 1.8.8 reconstruction of the NCP portion of roughly 2020 Hypixel. Thi
 not Hypixel's proprietary source or a complete Watchdog implementation.
 
 The entire modern NCP Java base was replaced with upstream **2013-12-31,
-`d51da2cbe013a19657c1d774d6aa2df95af1b080`**. Gradle packaging was retained.
+`d51da2cbe013a19657c1d774d6aa2df95af1b080`**. The build packages only the combined runtime source and resources.
 The native Spigot 1.8_R3 bridge comes from upstream **2015-05-25, `83660b0c`**;
 1.8 block definitions and Bukkit API signatures were adapted to the old core.
 
@@ -15,7 +15,7 @@ PaperSpigot 1.8.8 on Java 17 with ViaVersion 5.12.1. Put an existing 1.8.8 Spigo
 server JAR in `gradle/ncp-libs/spigot-1.8.8.jar` (ignored), or supply its path:
 
 ```sh
-./gradlew :NoCheatPlus:shadowJar -Pncp.serverJar=/path/to/spigot-1.8.8.jar
+./gradlew jar -Pncp.serverJar=/path/to/spigot-1.8.8.jar
 ```
 
 Install `target/NoCheatPlus.jar` in `plugins/` and copy the included
@@ -35,11 +35,12 @@ minus squared velocity. This does not exempt movement from NCP.
 
 ## Source map
 
-All core paths below are relative to `NCPCore/src/main/java/fr/neatmonster/nocheatplus/`.
+All Java code is in `src/main/java/fr/neatmonster/nocheatplus/`; runtime resources
+are in `src/main/resources/`. There are no separate compatibility/build modules.
 
 | Area | Entry and execution |
 | --- | --- |
-| Startup | `NCPPlugin/.../NoCheatPlus.java` registers block interact, break, place, chat, combined, fight, inventory, moving, then optional Bukkit consumption support. `MCAccessFactory` selects native collision/health access. |
+| Startup | `NoCheatPlus.java` registers block interact, break, place, chat, combined, fight, inventory, moving, then optional Bukkit consumption support. `MCAccessFactory` selects native collision/health access. |
 | Shared pipeline | `checks/Check.java` evaluates config/permissions/exemptions; `ViolationData.java` selects and rate-limits cancel/log/command actions. Async actions are queued through `TickTask`. |
 | Movement | `checks/moving/MovingListener.java`: illegal coordinates → Passable → SurvivalFly or CreativeFly → optional NoFall → MorePackets → final event result. MONITOR commits accepted positions/fall state. Tick processing handles hover and repeated airborne fall damage. |
 | Horizontal | `SurvivalFly.getAllowedhDist` chooses walk/sprint/sneak/block/swim/web, then ice/potions. `hDistAfterFailure`: bunny → permissions → actual server velocity → bunny retry → horizontal buffer → speed violation. |
@@ -49,7 +50,7 @@ All core paths below are relative to `NCPCore/src/main/java/fr/neatmonster/noche
 | Block interact | `blockinteract/BlockInteractListener`: speed → reach → direction → visibility; failed actions deny item/block use. |
 | Block place | `blockplace/BlockPlaceListener`: material restrictions → fast place → no swing → reach → direction; sign changes run AutoSign, projectile launch runs speed/yaw-rate/Improbable/pearl checks. |
 | Fight | `fight/FightListener`: self-hit/dead handling → critical → sprint-timing Knockback → no swing → reach → direction. GodMode and FastHeal use damage/health events. Accepted sprint hits update movement sprint grace. |
-| Inventory | `inventory/InventoryListener`: bow timing, food timing, click frequency, item validity/drop, and open-inventory lifecycle. Optional `NCPCompatBukkit` FastConsume replaces InstantEat when supported. |
+| Inventory | `inventory/InventoryListener`: bow timing, food timing, click frequency, item validity/drop, and open-inventory lifecycle. The Bukkit FastConsume hook replaces InstantEat when supported. |
 | Chat | `chat/ChatListener`: color/text/command scoring; login runs Relog/Logins; optional captcha. These are separate from movement. |
 | Combined | `combined/CombinedListener`, `Combined`, `Improbable`: shared action frequency, yaw-rate penalties, join damage handling, optional MunchHausen. BedLeave is dispatched by MovingListener. |
 | Configuration/data | `config/DefaultConfig`, per-check Config/Data classes, `players/DataManager`, and world/player lifecycle hooks. |

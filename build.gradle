@@ -1,73 +1,57 @@
-// Root build file for NoCheatPlus.
-//
-// Replaces the old `nocheatplus-parent` pom: shared coordinates, repositories, the
-// Java 8 compiler settings and the (deliberately local only) publishing setup live
-// here, so the individual modules only declare their own dependencies.
-
 plugins {
-    id 'base'
-    // Only used by the NoCheatPlus module, which shades all NCP modules into the
-    // plugin jar (this replaces maven-shade-plugin).
-    id 'com.gradleup.shadow' version '9.6.1' apply false
+    id 'java'
 }
 
-allprojects {
-    group = 'fr.neatmonster'
+group = 'fr.neatmonster'
+version = '3.10.8-hypixel2020-SNAPSHOT'
 
-    repositories {
-        mavenCentral()
-        // Non free CraftBukkit/Spigot server jars, e.g. installed with
-        // `mvn install:install-file` (see README) or `publishToMavenLocal`.
-        mavenLocal()
-        // Same, but for plain jars dropped into gradle/ncp-libs.
-        flatDir { dirs rootProject.file('gradle/ncp-libs') }
-        maven {
-            name = 'spigotRepo'
-            url = uri('https://hub.spigotmc.org/nexus/content/repositories/snapshots')
-        }
-    }
+def serverJar = providers.gradleProperty('ncp.serverJar').getOrElse(
+        layout.projectDirectory.file('gradle/ncp-libs/spigot-1.8.8.jar').asFile.path)
+
+dependencies {
+    compileOnly files(serverJar)
 }
 
-subprojects {
-    apply plugin: 'java-library'
-    apply plugin: 'maven-publish'
-
-    // Every module but NoCheatPlus, which carries the plugin version, uses this one.
-    version = '1.1-SNAPSHOT'
-
-    tasks.withType(JavaCompile).configureEach {
-        options.encoding = 'UTF-8'
-        // The plugin still has to run on Java 8. `release` produces Java 8 bytecode and
-        // additionally validates against the Java 8 API, so building with a newer JDK
-        // cannot accidentally pick up newer JDK methods.
-        options.release = 8
-    }
-
-    tasks.withType(Test).configureEach {
-        useJUnit()
-    }
-
-    tasks.withType(Javadoc).configureEach {
-        options.encoding = 'UTF-8'
-    }
-
-    publishing {
-        publications {
-            ncp(MavenPublication) {
-                from components.java
-            }
-        }
-        repositories {
-            // The poms skipped maven-deploy-plugin, so keep publishing local:
-            // `./gradlew publish` writes a repository to <root>/build/repo and
-            // `./gradlew publishToMavenLocal` installs into ~/.m2/repository.
-            maven {
-                name = 'localRepo'
-                url = rootProject.file('build/repo').toURI()
-            }
-        }
-    }
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 8
 }
 
-// Matches the `clean package` default goal of the old NoCheatPlus pom.
-defaultTasks 'build'
+def buildNumber = System.getenv('BUILD_NUMBER')
+def pluginValues = [
+        project: [name: 'NoCheatPlus', version: version.toString(), groupId: group.toString(),
+                  artifactId: 'nocheatplus', description: 'Detect and fight the exploitation of various flaws/bugs in Minecraft.',
+                  url: 'https://dev.bukkit.org/projects/nocheatplus'],
+        buildDescription: buildNumber ? "b$buildNumber" : new Date().format('yyyy_MM_dd-HH_mm', TimeZone.getDefault()),
+        BUILD_SERIES: 'hypixel2020',
+        BUILD_NUMBER: buildNumber ?: new Date().format('yyyyMMdd.HHmmss'),
+]
+def buildParameters = [
+        buildTimestamp: '${buildTimestamp}',
+        BUILD_SERIES: '${BUILD_SERIES}',
+        BUILD_NUMBER: '${BUILD_NUMBER}',
+        TEST_LEVEL: '${TEST_LEVEL}',
+        DEBUG_LEVEL: '${DEBUG_LEVEL}',
+        java: [vendor: System.getProperty('java.vendor'), version: System.getProperty('java.version'),
+               vm: [vendor: System.getProperty('java.vm.vendor'), version: System.getProperty('java.vm.version')],
+               specification: [vendor: System.getProperty('java.specification.vendor'),
+                               version: System.getProperty('java.specification.version')]],
+]
+
+tasks.named('processResources') {
+    inputs.properties(pluginValues: pluginValues.toString(), buildParameters: buildParameters.toString())
+    filesMatching('plugin.yml') {
+        expand(pluginValues)
+    }
+    filesMatching('BuildParameters.properties') {
+        expand(buildParameters)
+    }
+    from('LICENSE.txt')
+}
+
+tasks.named('jar') {
+    archiveFileName = 'NoCheatPlus.jar'
+    destinationDirectory = layout.projectDirectory.dir('target')
+}
+
+defaultTasks 'jar'
