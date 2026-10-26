@@ -1,0 +1,3 @@
+rootProject.name = 'watchdog-2020-remake'
+include 'NCPBuildBase', 'NCPCommons', 'NCPCore', 'NCPCompatBukkit', 'NCPPlugin', 'NoCheatPlus'
+include 'NCPCompatSpigotCB1_8_R3'

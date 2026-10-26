@@ -1,0 +1,7 @@
+description = 'Common data structures and other, no use of Bukkit.'
+
+dependencies {
+    // Maven compile scope, so NCPBuildBase stays on the consumer classpath.
+    api project(':NCPBuildBase')
+    testImplementation 'junit:junit:4.8.2'
+}

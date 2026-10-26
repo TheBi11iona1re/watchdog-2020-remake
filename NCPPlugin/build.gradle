@@ -1,0 +1,7 @@
+dependencies {
+    compileOnly('org.spigotmc:spigot-api:1.8.8-R0.1-SNAPSHOT') { transitive = false }
+    api project(':NCPCore')
+    api project(':NCPCompatBukkit')
+    api project(':NCPCompatSpigotCB1_8_R3')
+    testImplementation 'junit:junit:4.12'
+}

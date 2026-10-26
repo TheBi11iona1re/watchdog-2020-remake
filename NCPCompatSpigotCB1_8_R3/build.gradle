@@ -1,0 +1,6 @@
+dependencies {
+    compileOnly files(providers.gradleProperty('ncp.serverJar').getOrElse(
+        rootProject.file('gradle/ncp-libs/spigot-1.8.8.jar').path))
+    compileOnly project(':NCPCore')
+    compileOnly project(':NCPCompatBukkit')
+}

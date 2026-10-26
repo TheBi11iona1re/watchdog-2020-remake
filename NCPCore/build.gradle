@@ -1,0 +1,6 @@
+dependencies {
+    compileOnly('org.spigotmc:spigot-api:1.8.8-R0.1-SNAPSHOT') { transitive = false }
+    api project(':NCPCommons')
+    compileOnly 'org.yaml:snakeyaml:1.15'
+    testImplementation 'junit:junit:4.12'
+}

@@ -1,0 +1,73 @@
+// Root build file for NoCheatPlus.
+//
+// Replaces the old `nocheatplus-parent` pom: shared coordinates, repositories, the
+// Java 8 compiler settings and the (deliberately local only) publishing setup live
+// here, so the individual modules only declare their own dependencies.
+
+plugins {
+    id 'base'
+    // Only used by the NoCheatPlus module, which shades all NCP modules into the
+    // plugin jar (this replaces maven-shade-plugin).
+    id 'com.gradleup.shadow' version '9.6.1' apply false
+}
+
+allprojects {
+    group = 'fr.neatmonster'
+
+    repositories {
+        mavenCentral()
+        // Non free CraftBukkit/Spigot server jars, e.g. installed with
+        // `mvn install:install-file` (see README) or `publishToMavenLocal`.
+        mavenLocal()
+        // Same, but for plain jars dropped into gradle/ncp-libs.
+        flatDir { dirs rootProject.file('gradle/ncp-libs') }
+        maven {
+            name = 'spigotRepo'
+            url = uri('https://hub.spigotmc.org/nexus/content/repositories/snapshots')
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+
+    // Every module but NoCheatPlus, which carries the plugin version, uses this one.
+    version = '1.1-SNAPSHOT'
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        // The plugin still has to run on Java 8. `release` produces Java 8 bytecode and
+        // additionally validates against the Java 8 API, so building with a newer JDK
+        // cannot accidentally pick up newer JDK methods.
+        options.release = 8
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnit()
+    }
+
+    tasks.withType(Javadoc).configureEach {
+        options.encoding = 'UTF-8'
+    }
+
+    publishing {
+        publications {
+            ncp(MavenPublication) {
+                from components.java
+            }
+        }
+        repositories {
+            // The poms skipped maven-deploy-plugin, so keep publishing local:
+            // `./gradlew publish` writes a repository to <root>/build/repo and
+            // `./gradlew publishToMavenLocal` installs into ~/.m2/repository.
+            maven {
+                name = 'localRepo'
+                url = rootProject.file('build/repo').toURI()
+            }
+        }
+    }
+}
+
+// Matches the `clean package` default goal of the old NoCheatPlus pom.
+defaultTasks 'build'
